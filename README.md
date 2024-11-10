@@ -1,4 +1,4 @@
-# Lumix Engine
+# Fluxion Engine (Based on Lumix Engine)
 ---------
 
 [![Build Status](https://github.com/nem0/lumixengine/workflows/build/badge.svg)](https://github.com/nem0/lumixengine/actions)
