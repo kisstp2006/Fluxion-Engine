@@ -936,7 +936,7 @@ struct StudioAppImpl final : StudioApp {
 		init_window_args.hit_test_callback = &StudioAppImpl::hitTestCallback;
 		init_window_args.flags = os::InitWindowArgs::NO_DECORATION;
 		init_window_args.handle_file_drops = true;
-		init_window_args.name = "Lumix Studio";
+		init_window_args.name = "Fluxion Studio";
 		init_window_args.is_hidden = true;
 
 		m_main_window = os::createWindow(init_window_args);

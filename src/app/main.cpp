@@ -153,7 +153,7 @@ struct Runner final
 		m_engine = Engine::create(static_cast<Engine::InitArgs&&>(init_data), m_allocator);
 
 		os::InitWindowArgs init_window_args;
-		init_window_args.name = "Lumix App";
+		init_window_args.name = "Fluxion  App";
 		m_window = os::createWindow(init_window_args);
 		m_engine->setMainWindow(m_window);
 

@@ -713,9 +713,9 @@ static LONG WINAPI unhandledExceptionHandler(LPEXCEPTION_POINTERS info)
 
 		CloseHandle(file);
 
-		SendFile("Lumix Studio crash",
+		SendFile("Fluxion Studio crash",
 			"SMTP:mikulas.florek@gamedev.sk",
-			"Lumix Studio",
+			"Fluxion Studio",
 			message,
 			minidump_path);
 		return 0;
