@@ -1474,7 +1474,7 @@ struct StudioAppImpl final : StudioApp {
 				});
 			#endif
 
-			ImGui::Text("Welcome to Lumix Studio");
+			ImGui::Text("Welcome to Fluxion Studio");
 
 			ImVec2 half_size = ImGui::GetContentRegionAvail();
 			half_size.x = half_size.x * 0.5f - ImGui::GetStyle().FramePadding.x;

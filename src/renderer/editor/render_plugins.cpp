@@ -68,6 +68,7 @@
 
 using namespace Lumix;
 
+
 namespace {
 
 static const ComponentType PARTICLE_EMITTER_TYPE = reflection::getComponentType("particle_emitter");
@@ -2070,6 +2071,10 @@ struct ModelPlugin final : AssetBrowser::IPlugin, AssetCompiler::IPlugin {
 		}
 		
 		void importGUI() {
+			// Left side Height
+			float windowHeight = ImGui::GetContentRegionAvail().y;
+			float halfHeight = windowHeight / 2.0f; 
+			ImGui::BeginChild("ImportList", ImVec2(0, halfHeight), true);
 			if (m_has_meshes) {
 				ImGuiEx::Label("Bake vertex AO");
 				saveUndo(ImGui::Checkbox("##vrtxao", &m_meta.bake_vertex_ao));
@@ -2258,6 +2263,8 @@ struct ModelPlugin final : AssetBrowser::IPlugin, AssetCompiler::IPlugin {
 
 					ImGui::EndTable();
 				}
+				
+
 			}
 			else {
 				ImGui::TextUnformatted("No mesh data");
@@ -2318,10 +2325,16 @@ struct ModelPlugin final : AssetBrowser::IPlugin, AssetCompiler::IPlugin {
 
 					ImGui::EndTable();
 				}
+				
 			}
+			ImGui::EndChild();
 		}
 
 		void infoGUI() {
+			// Left side Height
+			float windowHeight = ImGui::GetContentRegionAvail().y;
+			float halfHeight = windowHeight / 2.0f; 
+			ImGui::BeginChild("InfoList", ImVec2(0, halfHeight+120), true);
 			if (!m_resource->isReady()) {
 				ImGui::TextUnformatted("Failed to load.");
 				return;
@@ -2427,6 +2440,7 @@ struct ModelPlugin final : AssetBrowser::IPlugin, AssetCompiler::IPlugin {
 					ImGui::EndTable();
 				}
 			}
+			ImGui::EndChild();
 		}
 
 		void windowGUI() override {

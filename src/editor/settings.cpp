@@ -757,66 +757,65 @@ static void Theme_Nord(ImGuiStyle* dst = NULL) {
 	style->FrameBorderSize = 1.00f;
 }
 
-static void Theme_Lumix(ImGuiStyle* dst = NULL) {
+static void Theme_Fluxion(ImGuiStyle* dst = NULL) {
 	ImGuiStyle* style = dst ? dst : &ImGui::GetStyle();
 	ImVec4* colors = style->Colors;
 	ImGui::StyleColorsDark(style); // Reset to base/dark theme
 
-	colors[ImGuiCol_Text] = {1.000000f, 1.000000f, 1.000000f, 1.000000f};
-	colors[ImGuiCol_TextDisabled] = {0.500000f, 0.500000f, 0.500000f, 1.000000f};
-	colors[ImGuiCol_WindowBg] = {0.160000f, 0.160000f, 0.160000f, 1.000000f};
-	colors[ImGuiCol_ChildBg] = {0.160000f, 0.160000f, 0.160000f, 1.000000f};
-	colors[ImGuiCol_PopupBg] = {0.140000f, 0.140000f, 0.140000f, 1.000000f};
-	colors[ImGuiCol_Border] = {0.240000f, 0.240000f, 0.240000f, 1.000000f};
-	colors[ImGuiCol_BorderShadow] = {0.000000f, 0.000000f, 0.000000f, 0.000000f};
-	colors[ImGuiCol_FrameBg] = {0.260000f, 0.260000f, 0.260000f, 1.000000f};
-	colors[ImGuiCol_FrameBgHovered] = {0.320000f, 0.320000f, 0.320000f, 1.000000f};
-	colors[ImGuiCol_FrameBgActive] = {0.370000f, 0.370000f, 0.370000f, 1.000000f};
-	colors[ImGuiCol_TitleBg] = {0.156863f, 0.156863f, 0.156863f, 1.000000f};
-	colors[ImGuiCol_TitleBgActive] = {0.156863f, 0.156863f, 0.156863f, 1.000000f};
-	colors[ImGuiCol_TitleBgCollapsed] = {0.160000f, 0.160000f, 0.160000f, 1.000000f};
-	colors[ImGuiCol_MenuBarBg] = {0.140000f, 0.140000f, 0.140000f, 1.000000f};
-	colors[ImGuiCol_ScrollbarBg] = {0.020000f, 0.020000f, 0.020000f, 0.000000f};
-	colors[ImGuiCol_ScrollbarGrab] = {0.310000f, 0.310000f, 0.310000f, 1.000000f};
-	colors[ImGuiCol_ScrollbarGrabHovered] = {0.410000f, 0.410000f, 0.410000f, 1.000000f};
-	colors[ImGuiCol_ScrollbarGrabActive] = {0.510000f, 0.510000f, 0.510000f, 1.000000f};
-	colors[ImGuiCol_CheckMark] = {0.510000f, 0.510000f, 0.510000f, 1.000000f};
-	colors[ImGuiCol_SliderGrab] = {0.510000f, 0.510000f, 0.510000f, 1.000000f};
-	colors[ImGuiCol_SliderGrabActive] = {0.560000f, 0.560000f, 0.560000f, 1.000000f};
-	colors[ImGuiCol_Button] = {0.270000f, 0.270000f, 0.270000f, 1.000000f};
-	colors[ImGuiCol_ButtonHovered] = {0.340000f, 0.340000f, 0.340000f, 1.000000f};
-	colors[ImGuiCol_ButtonActive] = {1.000000f, 0.501961f, 0.000000f, 1.000000f};
-	colors[ImGuiCol_Header] = {0.350000f, 0.350000f, 0.350000f, 1.000000f};
-	colors[ImGuiCol_HeaderHovered] = {0.390000f, 0.390000f, 0.390000f, 1.000000f};
-	colors[ImGuiCol_HeaderActive] = {0.440000f, 0.440000f, 0.440000f, 1.000000f};
-	colors[ImGuiCol_Separator] = {0.240000f, 0.240000f, 0.240000f, 1.000000f};
-	colors[ImGuiCol_SeparatorHovered] = {0.310000f, 0.310000f, 0.310000f, 1.000000f};
-	colors[ImGuiCol_SeparatorActive] = {0.340000f, 0.340000f, 0.340000f, 1.000000f};
-	colors[ImGuiCol_ResizeGrip] = {0.240000f, 0.240000f, 0.240000f, 1.000000f};
-	colors[ImGuiCol_ResizeGripHovered] = {0.310000f, 0.310000f, 0.310000f, 1.000000f};
-	colors[ImGuiCol_ResizeGripActive] = {0.370000f, 0.370000f, 0.370000f, 1.000000f};
-	colors[ImGuiCol_Tab] = {0.313726f, 0.313726f, 0.313726f, 1.000000f};
-	colors[ImGuiCol_TabHovered] = {0.579487f, 0.579487f, 0.579487f, 1.000000f};
-	colors[ImGuiCol_TabActive] = {0.501961f, 0.501961f, 0.501961f, 1.000000f};
-	colors[ImGuiCol_TabUnfocused] = {0.313726f, 0.313726f, 0.313726f, 1.000000f};
-	colors[ImGuiCol_TabUnfocusedActive] = {0.376471f, 0.376471f, 0.376471f, 1.000000f};
-	colors[ImGuiCol_DockingPreview] = {0.550000f, 0.550000f, 0.550000f, 1.000000f};
-	colors[ImGuiCol_DockingEmptyBg] = {0.200000f, 0.200000f, 0.200000f, 1.000000f};
-	colors[ImGuiCol_PlotLines] = {0.610000f, 0.610000f, 0.610000f, 1.000000f};
-	colors[ImGuiCol_PlotLinesHovered] = {1.000000f, 0.430000f, 0.350000f, 1.000000f};
-	colors[ImGuiCol_PlotHistogram] = {0.900000f, 0.700000f, 0.000000f, 1.000000f};
-	colors[ImGuiCol_PlotHistogramHovered] = {1.000000f, 0.600000f, 0.000000f, 1.000000f};
-	colors[ImGuiCol_TableHeaderBg] = {0.190000f, 0.190000f, 0.200000f, 1.000000f};
-	colors[ImGuiCol_TableBorderStrong] = {0.310000f, 0.310000f, 0.350000f, 1.000000f};
-	colors[ImGuiCol_TableBorderLight] = {0.230000f, 0.230000f, 0.250000f, 1.000000f};
-	colors[ImGuiCol_TableRowBg] = {0.000000f, 0.000000f, 0.000000f, 0.000000f};
-	colors[ImGuiCol_TableRowBgAlt] = {1.000000f, 1.000000f, 1.000000f, 0.060000f};
-	colors[ImGuiCol_TextSelectedBg] = {0.260000f, 0.590000f, 0.980000f, 0.350000f};
-	colors[ImGuiCol_DragDropTarget] = {1.000000f, 1.000000f, 0.000000f, 0.900000f};
-	colors[ImGuiCol_NavHighlight] = {0.780000f, 0.880000f, 1.000000f, 1.000000f};
-	colors[ImGuiCol_NavWindowingHighlight] = {1.000000f, 1.000000f, 1.000000f, 0.700000f};
-	colors[ImGuiCol_NavWindowingDimBg] = {0.800000f, 0.800000f, 0.800000f, 0.200000f};
-	colors[ImGuiCol_ModalWindowDimBg] = {0.440000f, 0.440000f, 0.440000f, 0.650000f};
+	colors[ImGuiCol_Text] = {0.9f, 0.9f, 0.9f, 1.0f};
+	colors[ImGuiCol_TextDisabled] = {0.5f, 0.5f, 0.5f, 1.0f};
+	colors[ImGuiCol_WindowBg] = {0.13f, 0.13f, 0.13f, 1.0f};
+	colors[ImGuiCol_ChildBg] = {0.13f, 0.13f, 0.13f, 1.0f};
+	colors[ImGuiCol_PopupBg] = {0.1f, 0.1f, 0.1f, 1.0f};
+	colors[ImGuiCol_Border] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_FrameBg] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_FrameBgHovered] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_FrameBgActive] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_TitleBg] = {0.15f, 0.15f, 0.15f, 1.0f};
+	colors[ImGuiCol_TitleBgActive] = {0.15f, 0.15f, 0.15f, 1.0f};
+	colors[ImGuiCol_TitleBgCollapsed] = {0.15f, 0.15f, 0.15f, 1.0f};
+	colors[ImGuiCol_MenuBarBg] = {0.14f, 0.14f, 0.14f, 1.0f};
+	colors[ImGuiCol_ScrollbarBg] = {0.02f, 0.02f, 0.02f, 0.0f};
+	colors[ImGuiCol_ScrollbarGrab] = {0.31f, 0.31f, 0.31f, 1.0f};
+	colors[ImGuiCol_ScrollbarGrabHovered] = {0.41f, 0.41f, 0.41f, 1.0f};
+	colors[ImGuiCol_ScrollbarGrabActive] = {0.51f, 0.51f, 0.51f, 1.0f};
+	colors[ImGuiCol_CheckMark] = {0.75f, 0.75f, 0.75f, 1.0f};
+	colors[ImGuiCol_SliderGrab] = {0.75f, 0.75f, 0.75f, 1.0f};
+	colors[ImGuiCol_SliderGrabActive] = {0.85f, 0.85f, 0.85f, 1.0f};
+	colors[ImGuiCol_Button] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_ButtonHovered] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_ButtonActive] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_Header] = {0.25f, 0.25f, 0.25f, 1.0f};
+	colors[ImGuiCol_HeaderHovered] = {0.35f, 0.35f, 0.35f, 1.0f};
+	colors[ImGuiCol_HeaderActive] = {0.45f, 0.45f, 0.45f, 1.0f};
+	colors[ImGuiCol_Separator] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_SeparatorHovered] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_SeparatorActive] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_ResizeGrip] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_ResizeGripHovered] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_ResizeGripActive] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_Tab] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_TabHovered] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_TabActive] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_TabUnfocused] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_TabUnfocusedActive] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_DockingPreview] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_DockingEmptyBg] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_PlotLines] = {0.6f, 0.6f, 0.6f, 1.0f};
+	colors[ImGuiCol_PlotLinesHovered] = {1.0f, 0.43f, 0.35f, 1.0f};
+	colors[ImGuiCol_PlotHistogram] = {0.9f, 0.7f, 0.0f, 1.0f};
+	colors[ImGuiCol_PlotHistogramHovered] = {1.0f, 0.6f, 0.0f, 1.0f};
+	colors[ImGuiCol_TableHeaderBg] = {0.19f, 0.19f, 0.2f, 1.0f};
+	colors[ImGuiCol_TableBorderStrong] = {0.31f, 0.31f, 0.35f, 1.0f};
+	colors[ImGuiCol_TableBorderLight] = {0.23f, 0.23f, 0.25f, 1.0f};
+	colors[ImGuiCol_TableRowBg] = {0.0f, 0.0f, 0.0f, 0.0f};
+	colors[ImGuiCol_TableRowBgAlt] = {1.0f, 1.0f, 1.0f, 0.06f};
+	colors[ImGuiCol_TextSelectedBg] = {0.26f, 0.59f, 0.98f, 0.35f};
+	colors[ImGuiCol_DragDropTarget] = {1.0f, 1.0f, 0.0f, 0.9f};
+	colors[ImGuiCol_NavHighlight] = {0.78f, 0.88f, 1.0f, 1.0f};
+	colors[ImGuiCol_NavWindowingHighlight] = {1.0f, 1.0f, 1.0f, 0.7f};
+	colors[ImGuiCol_NavWindowingDimBg] = {0.8f, 0.8f, 0.8f, 0.2f};
+	colors[ImGuiCol_ModalWindowDimBg] = {0.44f, 0.44f, 0.44f, 0.65f};
 	style->WindowMenuButtonPosition = ImGuiDir_Right;
 	style->Alpha = 1.000000;
 	style->WindowPadding = {4.000000, 4.000000};
@@ -845,17 +844,87 @@ static void Theme_Lumix(ImGuiStyle* dst = NULL) {
 	style->DisplayWindowPadding = {19.000000, 19.000000};
 	style->DisplaySafeAreaPadding = {3.000000, 3.000000};
 }
+static void Theme_Oled(ImGuiStyle* dst = NULL) {
+	ImGuiStyle& style = ImGui::GetStyle();
+	ImVec4* colors = style.Colors;
+
+	colors[ImGuiCol_Text] = {0.95f, 0.95f, 0.95f, 1.0f};
+	colors[ImGuiCol_TextDisabled] = {0.5f, 0.5f, 0.5f, 1.0f};
+	colors[ImGuiCol_WindowBg] = {0.08f, 0.08f, 0.08f, 1.0f};
+	colors[ImGuiCol_ChildBg] = {0.08f, 0.08f, 0.08f, 1.0f};
+	colors[ImGuiCol_PopupBg] = {0.07f, 0.07f, 0.07f, 1.0f};
+	colors[ImGuiCol_Border] = {0.18f, 0.18f, 0.18f, 1.0f};
+	colors[ImGuiCol_FrameBg] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_FrameBgHovered] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_FrameBgActive] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_TitleBg] = {0.1f, 0.1f, 0.1f, 1.0f};
+	colors[ImGuiCol_TitleBgActive] = {0.15f, 0.15f, 0.15f, 1.0f};
+	colors[ImGuiCol_TitleBgCollapsed] = {0.05f, 0.05f, 0.05f, 1.0f};
+	colors[ImGuiCol_MenuBarBg] = {0.09f, 0.09f, 0.09f, 1.0f};
+	colors[ImGuiCol_ScrollbarBg] = {0.02f, 0.02f, 0.02f, 0.0f};
+	colors[ImGuiCol_ScrollbarGrab] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_ScrollbarGrabHovered] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_ScrollbarGrabActive] = {0.5f, 0.5f, 0.5f, 1.0f};
+	colors[ImGuiCol_CheckMark] = {0.78f, 0.88f, 1.0f, 1.0f};
+	colors[ImGuiCol_SliderGrab] = {0.8f, 0.8f, 0.8f, 1.0f};
+	colors[ImGuiCol_SliderGrabActive] = {0.9f, 0.9f, 0.9f, 1.0f};
+	colors[ImGuiCol_Button] = {0.15f, 0.15f, 0.15f, 1.0f};
+	colors[ImGuiCol_ButtonHovered] = {0.25f, 0.25f, 0.25f, 1.0f};
+	colors[ImGuiCol_ButtonActive] = {0.35f, 0.35f, 0.35f, 1.0f};
+	colors[ImGuiCol_Header] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_HeaderHovered] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_HeaderActive] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_Separator] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_SeparatorHovered] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_SeparatorActive] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_Tab] = {0.18f, 0.18f, 0.18f, 1.0f};
+	colors[ImGuiCol_TabHovered] = {0.28f, 0.28f, 0.28f, 1.0f};
+	colors[ImGuiCol_TabActive] = {0.4f, 0.4f, 0.4f, 1.0f};
+	colors[ImGuiCol_TabUnfocused] = {0.15f, 0.15f, 0.15f, 1.0f};
+	colors[ImGuiCol_TabUnfocusedActive] = {0.25f, 0.25f, 0.25f, 1.0f};
+	colors[ImGuiCol_PlotLines] = {0.7f, 0.7f, 0.7f, 1.0f};
+	colors[ImGuiCol_PlotHistogram] = {0.8f, 0.8f, 0.0f, 1.0f};
+	colors[ImGuiCol_TableHeaderBg] = {0.15f, 0.15f, 0.2f, 1.0f};
+	colors[ImGuiCol_TableBorderStrong] = {0.3f, 0.3f, 0.3f, 1.0f};
+	colors[ImGuiCol_TableBorderLight] = {0.2f, 0.2f, 0.2f, 1.0f};
+	colors[ImGuiCol_TextSelectedBg] = {0.26f, 0.59f, 0.98f, 0.35f};
+	colors[ImGuiCol_DragDropTarget] = {1.0f, 1.0f, 0.0f, 0.9f};
+	colors[ImGuiCol_NavHighlight] = {0.75f, 0.75f, 0.75f, 1.0f};
+	colors[ImGuiCol_NavWindowingHighlight] = {1.0f, 1.0f, 1.0f, 0.7f};
+	colors[ImGuiCol_NavWindowingDimBg] = {0.8f, 0.8f, 0.8f, 0.2f};
+	colors[ImGuiCol_ModalWindowDimBg] = {0.35f, 0.35f, 0.35f, 0.65f};
+
+	style.WindowMenuButtonPosition = ImGuiDir_Right;
+	style.Alpha = 1.0f;
+	style.WindowPadding = {8.0f, 8.0f};
+	style.WindowRounding = 4.0f;
+	style.WindowBorderSize = 1.0f;
+	style.FramePadding = {6.0f, 4.0f};
+	style.FrameRounding = 4.0f;
+	style.ItemSpacing = {8.0f, 4.0f};
+	style.ItemInnerSpacing = {4.0f, 4.0f};
+	style.ScrollbarSize = 15.0f;
+	style.ScrollbarRounding = 4.0f;
+	style.GrabMinSize = 12.0f;
+	style.GrabRounding = 4.0f;
+	style.TabRounding = 4.0f;
+	style.TabBorderSize = 1.0f;
+	style.DisplayWindowPadding = {20.0f, 20.0f};
+	style.DisplaySafeAreaPadding = {4.0f, 4.0f};
+}
+
 
 bool ShowStyleSelector() {
 	static int style_idx = -1;
-	if (ImGui::Combo("##themes", &style_idx, "Classic\0Dark\0Light\0Blender\0Nord\0Lumix\0")) {
+	if (ImGui::Combo("##themes", &style_idx, "Classic\0Dark\0Light\0Blender\0Nord\0Fluxion\0Oled\0")) {
 		switch (style_idx) {
 			case 0: ImGui::StyleColorsClassic(); break;
 			case 1: ImGui::StyleColorsDark(); break;
 			case 2: ImGui::StyleColorsLight(); break;
 			case 3: Theme_Blender(); break;
 			case 4: Theme_Nord(); break;
-			case 5: Theme_Lumix(); break;
+			case 5: Theme_Fluxion(); break;
+			case 6: Theme_Oled(); break;
 		}
 		return true;
 	}
