@@ -20,7 +20,7 @@
 
 namespace Lumix {
 
-static bool proportional_scaling = false;
+static bool uniform_scaling = false;
 
 static const ComponentType GUI_RECT_TYPE = reflection::getComponentType("gui_rect");
 static const ComponentType GUI_CANVAS_TYPE = reflection::getComponentType("gui_canvas");
@@ -805,41 +805,39 @@ void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEdi
 	Vec3 scale = world.getScale(entities[0]);
 	Vec3 last_scale = scale;
 
-	
-	ImGuiEx::Label("Scale (Locked)"); // ToDo : Fix the button position or replace the button
+		ImGuiEx::Label("Scale");
 
-	
-	ImGui::SameLine();
-	
-	if (ImGui::DragFloat3("##scale", &scale.x, 0.1f, 0, FLT_MAX)) {
-		if (proportional_scaling) {
-			
-			float delta_x = scale.x - last_scale.x;
-			float delta_y = scale.y - last_scale.y;
-			float delta_z = scale.z - last_scale.z;
+		ImGui::SameLine();
 
-			
-			float delta = 0.0f;
-			if (delta_x != 0.0f)
-				delta = delta_x;
-			else if (delta_y != 0.0f)
-				delta = delta_y;
-			else if (delta_z != 0.0f)
-				delta = delta_z;
+		if (ImGui::DragFloat3("##scale", &scale.x, 0.1f, 0, FLT_MAX)) {
+			if (uniform_scaling) {
 
-			scale.x = last_scale.x + delta;
-			scale.y = last_scale.y + delta;
-			scale.z = last_scale.z + delta;
+				float delta_x = scale.x - last_scale.x;
+				float delta_y = scale.y - last_scale.y;
+				float delta_z = scale.z - last_scale.z;
+
+
+				float delta = 0.0f;
+				if (delta_x != 0.0f)
+					delta = delta_x;
+				else if (delta_y != 0.0f)
+					delta = delta_y;
+				else if (delta_z != 0.0f)
+					delta = delta_z;
+
+				scale.x = last_scale.x + delta;
+				scale.y = last_scale.y + delta;
+				scale.z = last_scale.z + delta;
+			}
+
+
+			editor.setEntitiesScale(&entities[0], entities.size(), scale);
+
+			last_scale = scale;
 		}
-
-		
-		editor.setEntitiesScale(&entities[0], entities.size(), scale);
-
-		last_scale = scale;
-	}
-	if (ImGui::Button(proportional_scaling ? "L" : "U")) {
-		proportional_scaling = !proportional_scaling; // Állapot váltása
-	}
+		ImGuiEx::Label("Uniform Scaling");
+		ImGui::Checkbox(" ", &uniform_scaling);
+	
 	ImGui::TreePop();
 }
 
