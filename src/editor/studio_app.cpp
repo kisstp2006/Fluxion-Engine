@@ -1447,106 +1447,102 @@ struct StudioAppImpl final : StudioApp {
 		m_editor->loadWorld(blob, path.c_str(), additive);
 	}
 
-	void guiWelcomeScreen()
-	{
+	void guiWelcomeScreen() {
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowPos(viewport->WorkPos);
 		ImGui::SetNextWindowSize(viewport->WorkSize);
 		ImGui::SetNextWindowViewport(viewport->ID);
-		if (ImGui::Begin("Welcome", nullptr, flags)) {
-			#ifdef _WIN32
-				const ImVec2 cp = ImGui::GetCursorPos();
-				ImGui::InvisibleButton("titlebardrag", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()), ImGuiButtonFlags_AllowOverlap);
-				m_is_caption_hovered = ImGui::IsItemHovered();
-				ImGui::SetCursorPos(cp);
-				alignGUIRight([&](){
-					if (ImGuiEx::IconButton(ICON_FA_WINDOW_MINIMIZE, nullptr)) os::minimizeWindow(m_main_window);
-					ImGui::SameLine();
-					if (os::isMaximized(m_main_window)) {
-						if (ImGuiEx::IconButton(ICON_FA_WINDOW_RESTORE, nullptr)) os::restore(m_main_window);
-					}
-					else {
-						if (ImGuiEx::IconButton(ICON_FA_WINDOW_MAXIMIZE, nullptr)) os::maximizeWindow(m_main_window);
-					}
-					ImGui::SameLine();
-					if (ImGuiEx::IconButton(ICON_FA_WINDOW_CLOSE, nullptr)) exit();
-				});
-			#endif
 
-			ImGui::Text("Welcome to Fluxion Studio");
+		static int selected_section = 0; // Track the selected section
 
-			ImVec2 half_size = ImGui::GetContentRegionAvail();
-			half_size.x = half_size.x * 0.5f - ImGui::GetStyle().FramePadding.x;
-			half_size.y *= 0.99f;
-			auto right_pos = ImGui::GetCursorPos();
-			right_pos.x += half_size.x + ImGui::GetStyle().FramePadding.x;
-			if (ImGui::BeginChild("left", half_size, true))
-			{
-				ImGui::Text("Working directory: %s", m_engine->getFileSystem().getBasePath());
-				ImGui::SameLine();
-				if (ImGui::Button("Change...")) {
-					char dir[MAX_PATH];
-					if (os::getOpenDirectory(Span(dir), m_engine->getFileSystem().getBasePath())) {
-						os::OutputFile cfg_file;
-						if (cfg_file.open(".lumixuser")) {
-							cfg_file << dir;
-							cfg_file.close();
-						}
-						m_engine->getFileSystem().setBasePath(dir);
-						extractBundled();
-						m_editor->loadProject();
-						m_asset_compiler->onBasePathChanged();
-						m_engine->getResourceManager().reloadAll();
-					}
-				}
+		if (ImGui::Begin("Welcome to Fluxion Studio", nullptr, flags)) {
+			ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "Fluxion Studio - Welcome!");
+			ImGui::Separator();
+
+			ImVec2 sidebar_size = ImVec2(200.0f, ImGui::GetContentRegionAvail().y);
+
+			// Sidebar
+			if (ImGui::BeginChild("Sidebar", sidebar_size, true)) {
+				ImGui::Text("Navigation");
 				ImGui::Separator();
-				if (ImGui::Button("New world")) {
-					initDefaultWorld();
-					m_is_welcome_screen_open = false;
+
+				// Sidebar menu items
+				if (ImGui::Selectable("General", selected_section == 0)) {
+					selected_section = 0;
 				}
-				ImGui::Text("Open world:");
-				ImGui::Indent();
-				forEachWorld([&](const Path& path){
-					if (ImGui::MenuItem(path.c_str())) {
-						loadWorld(path, false);
-						m_is_welcome_screen_open = false;
-					}
-				});
-				ImGui::Unindent();
+				if (ImGui::Selectable("Resources", selected_section == 1)) {
+					selected_section = 1;
+				}
+				if (ImGui::Selectable("Community", selected_section == 2)) {
+					selected_section = 2;
+				}
 			}
 			ImGui::EndChild();
 
-			ImGui::SetCursorPos(right_pos);
+			// Main content area next to sidebar
+			ImGui::SameLine();
+			if (ImGui::BeginChild("MainContent", ImVec2(0, 0), true)) {
+				switch (selected_section) {
+					case 0: // General
+						ImGui::Text("Engine version: %s", "1.0");
 
-			if (ImGui::BeginChild("right", half_size, true))
-			{
-				ImGui::Text("Using NVidia PhysX");
+						ImGui::Separator();
+						ImGui::Text("Working directory: %s", m_engine->getFileSystem().getBasePath());
+						if (ImGui::Button("Change Directory...")) {
+							char dir[MAX_PATH];
+							if (os::getOpenDirectory(Span(dir), m_engine->getFileSystem().getBasePath())) {
+								os::OutputFile cfg_file;
+								if (cfg_file.open(".lumixuser")) {
+									cfg_file << dir;
+									cfg_file.close();
+								}
+								m_engine->getFileSystem().setBasePath(dir);
+								extractBundled();
+								m_editor->loadProject();
+								m_asset_compiler->onBasePathChanged();
+								m_engine->getResourceManager().reloadAll();
+							}
+						}
+						ImGui::Separator();
 
-				if (ImGui::Button("Wiki"))
-				{
-					os::shellExecuteOpen("https://github.com/nem0/LumixEngine/wiki", {}, {});
-				}
+						if (ImGui::Button("New World")) {
+							initDefaultWorld();
+							m_is_welcome_screen_open = false;
+						}
 
-				if (ImGui::Button("Show major releases"))
-				{
-					os::shellExecuteOpen("https://github.com/nem0/LumixEngine/releases", {}, {});
-				}
+						ImGui::Text("Open World:");
+						ImGui::Indent();
+						forEachWorld([&](const Path& path) {
+							if (ImGui::MenuItem(path.c_str())) {
+								loadWorld(path, false);
+								m_is_welcome_screen_open = false;
+							}
+						});
+						ImGui::Unindent();
+						break;
 
-				if (ImGui::Button("Show latest commits"))
-				{
-					os::shellExecuteOpen("https://github.com/nem0/LumixEngine/commits/master", {}, {});
-				}
+					case 1: // Resources
+						ImGui::Text("Using NVidia PhysX");
+						if (ImGui::Button("Wiki")) os::shellExecuteOpen("https://github.com/kisstp2006/Fluxion-Engine/wiki", {}, {});
+						if (ImGui::Button("Major Releases")) os::shellExecuteOpen("https://github.com/kisstp2006/Fluxion-Engine/releases", {}, {});
+						if (ImGui::Button("Latest Commits")) os::shellExecuteOpen("https://github.com/kisstp2006/Fluxion-Engine/commits/master", {}, {});
+						if (ImGui::Button("Issues")) os::shellExecuteOpen("", {}, {});
+						break;
 
-				if (ImGui::Button("Show issues"))
-				{
-					os::shellExecuteOpen("https://github.com/nem0/lumixengine/issues", {}, {});
+					case 2: // Community
+						ImGui::Text("Join the Community:");
+						if (ImGui::Button("Discord")) os::shellExecuteOpen("https://discord.gg/YNgMVFTEPa", {}, {});
+						if (ImGui::Button("Forum")) os::shellExecuteOpen("https://forum.fluxionengine.com", {}, {});
+						break;
 				}
 			}
 			ImGui::EndChild();
 		}
 		ImGui::End();
 	}
+
+
 
 	void save() {
 		if (m_editor->isGameMode()) {
