@@ -3,9 +3,7 @@
 #include "core/crt.h"
 #include "core/math.h"
 #include "core/stream.h"
-#include "core/math.h"
 
-#include "property_grid.h"
 #include "asset_browser.h"
 #include "editor/prefab_system.h"
 #include "editor/settings.h"
@@ -16,11 +14,13 @@
 #include "engine/reflection.h"
 #include "engine/resource.h"
 #include "engine/world.h"
+#include "property_grid.h"
 #include "utils.h"
 
 
-namespace Lumix
-{
+namespace Lumix {
+
+static bool proportional_scaling = false;
 
 static const ComponentType GUI_RECT_TYPE = reflection::getComponentType("gui_rect");
 static const ComponentType GUI_CANVAS_TYPE = reflection::getComponentType("gui_canvas");
@@ -30,14 +30,12 @@ PropertyGrid::PropertyGrid(StudioApp& app)
 	: m_app(app)
 	, m_is_open(true)
 	, m_plugins(app.getAllocator())
-	, m_deferred_select(INVALID_ENTITY)
-{
+	, m_deferred_select(INVALID_ENTITY) {
 	m_app.getSettings().registerOption("property_grid_open", &m_is_open);
 }
 
 
-struct GridUIVisitor final : reflection::IPropertyVisitor
-{
+struct GridUIVisitor final : reflection::IPropertyVisitor {
 	GridUIVisitor(StudioApp& app, int index, const Array<EntityRef>& entities, ComponentType cmp_type, const TextFilter& filter, WorldEditor& editor)
 		: m_entities(entities)
 		, m_cmp_type(cmp_type)
@@ -45,12 +43,10 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		, m_index(index)
 		, m_grid(app.getPropertyGrid())
 		, m_app(app)
-		, m_filter(filter)
-	{}
+		, m_filter(filter) {}
 
 
-	ComponentUID getComponent() const
-	{
+	ComponentUID getComponent() const {
 		ComponentUID first_entity_cmp;
 		first_entity_cmp.type = m_cmp_type;
 		first_entity_cmp.module = m_editor.getWorld()->getModule(m_cmp_type);
@@ -69,48 +65,32 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		ResourceType resource_type;
 	};
 
-	template <typename T>
-	static Attributes getAttributes(const reflection::Property<T>& prop)
-	{
+	template <typename T> static Attributes getAttributes(const reflection::Property<T>& prop) {
 		Attributes attrs;
 		for (const reflection::IAttribute* attr : prop.attributes) {
 			switch (attr->getType()) {
-				case reflection::IAttribute::RADIANS:
-					attrs.is_radians = true;
-					break;
-				case reflection::IAttribute::NO_UI:
-					attrs.no_ui = true;
-					break;
-				case reflection::IAttribute::COLOR:
-					attrs.is_color = true;
-					break;
-				case reflection::IAttribute::MULTILINE:
-					attrs.is_multiline = true;
-					break;
-				case reflection::IAttribute::MIN:
-					attrs.min = ((reflection::MinAttribute&)*attr).min;
-					break;
+				case reflection::IAttribute::RADIANS: attrs.is_radians = true; break;
+				case reflection::IAttribute::NO_UI: attrs.no_ui = true; break;
+				case reflection::IAttribute::COLOR: attrs.is_color = true; break;
+				case reflection::IAttribute::MULTILINE: attrs.is_multiline = true; break;
+				case reflection::IAttribute::MIN: attrs.min = ((reflection::MinAttribute&)*attr).min; break;
 				case reflection::IAttribute::CLAMP:
 					attrs.min = ((reflection::ClampAttribute&)*attr).min;
 					attrs.max = ((reflection::ClampAttribute&)*attr).max;
 					break;
-				case reflection::IAttribute::RESOURCE:
-					attrs.resource_type = ((reflection::ResourceAttribute&)*attr).resource_type;
-					break;
+				case reflection::IAttribute::RESOURCE: attrs.resource_type = ((reflection::ResourceAttribute&)*attr).resource_type; break;
 				default: break;
 			}
 		}
 		return attrs;
 	}
 
-	template <typename T>
-	void dynamicProperty(const ComponentUID& cmp, const reflection::DynamicProperties& prop, u32 prop_index) {
+	template <typename T> void dynamicProperty(const ComponentUID& cmp, const reflection::DynamicProperties& prop, u32 prop_index) {
 		struct Prop : reflection::Property<T> {
-			Prop(IAllocator& allocator) : reflection::Property<T>(allocator) {}
+			Prop(IAllocator& allocator)
+				: reflection::Property<T>(allocator) {}
 
-			T get(ComponentUID cmp, u32 array_index) const override {
-				return reflection::get<T>(prop->getValue(cmp, array_index, index));
-			}
+			T get(ComponentUID cmp, u32 array_index) const override { return reflection::get<T>(prop->getValue(cmp, array_index, index)); }
 
 			void set(ComponentUID cmp, u32 array_index, T value) const override {
 				reflection::DynamicProperties::Value v;
@@ -127,16 +107,17 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 
 		p.name = prop.getName(cmp, m_index, prop_index);
 		p.prop = &prop;
-		p.index =  prop_index;
+		p.index = prop_index;
 		if (!m_grid.m_property_filter.pass(p.name)) return;
 		visit(p);
 	}
 
 	void visit(const reflection::DynamicProperties& prop) override {
-		ComponentUID cmp = getComponent();;
+		ComponentUID cmp = getComponent();
+		;
 		for (u32 i = 0, c = prop.getCount(cmp, m_index); i < c; ++i) {
 			const reflection::DynamicProperties::Type type = prop.getType(cmp, m_index, i);
-			switch(type) {
+			switch (type) {
 				case reflection::DynamicProperties::NONE: break;
 				case reflection::DynamicProperties::FLOAT: dynamicProperty<float>(cmp, prop, i); break;
 				case reflection::DynamicProperties::BOOLEAN: dynamicProperty<bool>(cmp, prop, i); break;
@@ -145,11 +126,10 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 				case reflection::DynamicProperties::STRING: dynamicProperty<const char*>(cmp, prop, i); break;
 				case reflection::DynamicProperties::COLOR: {
 					struct Prop : reflection::Property<Vec3> {
-						Prop(IAllocator& allocator) : Property<Vec3>(allocator) {}
+						Prop(IAllocator& allocator)
+							: Property<Vec3>(allocator) {}
 
-						Vec3 get(ComponentUID cmp, u32 array_index) const override {
-							return reflection::get<Vec3>(prop->getValue(cmp, array_index, index));
-						}
+						Vec3 get(ComponentUID cmp, u32 array_index) const override { return reflection::get<Vec3>(prop->getValue(cmp, array_index, index)); }
 						void set(ComponentUID cmp, u32 array_index, Vec3 value) const override {
 							reflection::DynamicProperties::Value v;
 							reflection::set(v, value);
@@ -166,18 +146,17 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 
 					p.name = prop.getName(cmp, m_index, i);
 					p.prop = &prop;
-					p.index =  i;
+					p.index = i;
 					p.attributes.push(&p.attr);
 					visit(p);
 					break;
 				}
 				case reflection::DynamicProperties::RESOURCE: {
 					struct Prop : reflection::Property<Path> {
-						Prop(IAllocator& allocator) : Property<Path>(allocator) {}
+						Prop(IAllocator& allocator)
+							: Property<Path>(allocator) {}
 
-						Path get(ComponentUID cmp, u32 array_index) const override {
-							return Path(reflection::get<const char*>(prop->getValue(cmp, array_index, index)));
-						}
+						Path get(ComponentUID cmp, u32 array_index) const override { return Path(reflection::get<const char*>(prop->getValue(cmp, array_index, index))); }
 
 						void set(ComponentUID cmp, u32 array_index, Path value) const override {
 							reflection::DynamicProperties::Value v;
@@ -196,7 +175,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 					p.attr = prop.getResourceAttribute(cmp, m_index, i);
 					p.name = prop.getName(cmp, m_index, i);
 					p.prop = &prop;
-					p.index =  i;
+					p.index = i;
 					p.attributes.push(&p.attr);
 					visit(p);
 					break;
@@ -205,8 +184,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		}
 	}
 
-	void visit(const reflection::Property<float>& prop) override
-	{
+	void visit(const reflection::Property<float>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 
@@ -217,8 +195,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		if (attrs.is_radians) f = radiansToDegrees(f);
 		ImGuiEx::Label(prop.name);
 		ImGui::PushID(prop.name);
-		if (ImGui::DragFloat("##v", &f, 1, attrs.min, attrs.max))
-		{
+		if (ImGui::DragFloat("##v", &f, 1, attrs.min, attrs.max)) {
 			f = clamp(f, attrs.min, attrs.max);
 			if (attrs.is_radians) f = degreesToRadians(f);
 			m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, f);
@@ -227,8 +204,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		if (prop.isReadonly()) ImGuiEx::PopReadOnly();
 	}
 
-	void visit(const reflection::Property<int>& prop) override
-	{
+	void visit(const reflection::Property<int>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		ComponentUID cmp = getComponent();
 		int value = prop.get(cmp, m_index);
@@ -266,8 +242,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 		ImGui::PushID(prop.name);
 		ImGuiEx::Label(prop.name);
-		if (ImGui::InputInt("##v", &value))
-		{
+		if (ImGui::InputInt("##v", &value)) {
 			m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, value);
 		}
 		ImGui::PopID();
@@ -275,12 +250,11 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 	}
 
 
-	void visit(const reflection::Property<u32>& prop) override
-	{
+	void visit(const reflection::Property<u32>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		ComponentUID cmp = getComponent();
 		u32 value = prop.get(cmp, m_index);
-		
+
 		auto* enum_attr = (reflection::EnumAttribute*)reflection::getAttribute(prop, reflection::IAttribute::ENUM);
 		if (enum_attr) {
 			if (m_entities.size() > 1) {
@@ -314,8 +288,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 		ImGuiEx::Label(prop.name);
 		ImGui::PushID(prop.name);
-		if (ImGui::InputScalar("##v", ImGuiDataType_U32, &value))
-		{
+		if (ImGui::InputScalar("##v", ImGuiDataType_U32, &value)) {
 			m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, value);
 		}
 		ImGui::PopID();
@@ -323,8 +296,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 	}
 
 
-	void visit(const reflection::Property<EntityPtr>& prop) override
-	{
+	void visit(const reflection::Property<EntityPtr>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 		ComponentUID cmp = getComponent();
@@ -333,15 +305,15 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		char buf[128];
 		getEntityListDisplayName(m_app, *m_editor.getWorld(), Span(buf), entity);
 		ImGui::PushID(prop.name);
-		
+
 		ImGuiEx::Label(prop.name);
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, ImGui::GetStyle().ItemSpacing.y));
-		
+
 		if (!entity.isValid()) {
 			copyString(buf, "No entity (click to set)");
 			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
 		}
-		
+
 		const float icons_w = ImGui::CalcTextSize(ICON_FA_BULLSEYE ICON_FA_TRASH).x;
 		if (ImGui::Button(buf, ImVec2(entity.isValid() ? -icons_w : -1.f, 0))) {
 			ImGui::OpenPopup("popup");
@@ -371,18 +343,15 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 
 
 		World& world = *m_editor.getWorld();
-		if (ImGuiEx::BeginResizablePopup("popup", ImVec2(200, 300)))
-		{
+		if (ImGuiEx::BeginResizablePopup("popup", ImVec2(200, 300))) {
 			static TextFilter entity_filter;
 			entity_filter.gui("Filter", -1, ImGui::IsWindowAppearing());
-			
+
 			if (ImGui::BeginChild("list", ImVec2(0, ImGui::GetContentRegionAvail().y))) {
-				for (EntityPtr i = world.getFirstEntity(); i.isValid(); i = world.getNextEntity((EntityRef)i))
-				{
+				for (EntityPtr i = world.getFirstEntity(); i.isValid(); i = world.getNextEntity((EntityRef)i)) {
 					getEntityListDisplayName(m_app, world, Span(buf), i);
 					bool show = entity_filter.pass(buf);
-					if (show && ImGui::Selectable(buf))
-					{
+					if (show && ImGui::Selectable(buf)) {
 						m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, i);
 					}
 				}
@@ -395,8 +364,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 	}
 
 
-	void visit(const reflection::Property<Vec2>& prop) override
-	{
+	void visit(const reflection::Property<Vec2>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 		ComponentUID cmp = getComponent();
@@ -407,8 +375,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		if (attrs.is_radians) value = radiansToDegrees(value);
 		ImGuiEx::Label(prop.name);
 		ImGui::PushID(prop.name);
-		if (ImGui::DragFloat2("##v", &value.x))
-		{
+		if (ImGui::DragFloat2("##v", &value.x)) {
 			if (attrs.is_radians) value = degreesToRadians(value);
 			m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, value);
 		}
@@ -417,8 +384,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 	}
 
 
-	void visit(const reflection::Property<Vec3>& prop) override
-	{
+	void visit(const reflection::Property<Vec3>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 		Attributes attrs = getAttributes(prop);
@@ -427,18 +393,13 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 
 		ImGuiEx::Label(prop.name);
 		ImGui::PushID(prop.name);
-		if (attrs.is_color)
-		{
-			if (ImGui::ColorEdit3("##v", &value.x))
-			{
+		if (attrs.is_color) {
+			if (ImGui::ColorEdit3("##v", &value.x)) {
 				m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, value);
 			}
-		}
-		else
-		{
+		} else {
 			if (attrs.is_radians) value = radiansToDegrees(value);
-			if (ImGui::DragFloat3("##v", &value.x, 1, attrs.min, attrs.max))
-			{
+			if (ImGui::DragFloat3("##v", &value.x, 1, attrs.min, attrs.max)) {
 				if (attrs.is_radians) value = degreesToRadians(value);
 				m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, value);
 			}
@@ -448,13 +409,12 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 	}
 
 
-	void visit(const reflection::Property<IVec3>& prop) override
-	{
+	void visit(const reflection::Property<IVec3>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 		ComponentUID cmp = getComponent();
 		IVec3 value = prop.get(cmp, m_index);
-		
+
 		ImGuiEx::Label(prop.name);
 		ImGui::PushID(prop.name);
 		if (ImGui::DragInt3("##v", &value.x)) {
@@ -465,8 +425,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 	}
 
 
-	void visit(const reflection::Property<Vec4>& prop) override
-	{
+	void visit(const reflection::Property<Vec4>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 		Attributes attrs = getAttributes(prop);
@@ -475,17 +434,12 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 
 		ImGuiEx::Label(prop.name);
 		ImGui::PushID(prop.name);
-		if (attrs.is_color)
-		{
-			if (ImGui::ColorEdit4("##v", &value.x))
-			{
+		if (attrs.is_color) {
+			if (ImGui::ColorEdit4("##v", &value.x)) {
 				m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, value);
 			}
-		}
-		else
-		{
-			if (ImGui::DragFloat4("##v", &value.x))
-			{
+		} else {
+			if (ImGui::DragFloat4("##v", &value.x)) {
 				m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, value);
 			}
 		}
@@ -494,8 +448,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 	}
 
 
-	void visit(const reflection::Property<bool>& prop) override
-	{
+	void visit(const reflection::Property<bool>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 		if (equalIStrings(prop.name, "enabled") && m_index == -1 && m_entities.size() == 1) return;
@@ -504,8 +457,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 
 		ImGuiEx::Label(prop.name);
 		ImGui::PushID(prop.name);
-		if (ImGui::Checkbox("##v", &value))
-		{
+		if (ImGui::Checkbox("##v", &value)) {
 			m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, value);
 		}
 		ImGui::PopID();
@@ -528,8 +480,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 			if (m_app.getAssetBrowser().resourceInput(prop.name, path, attrs.resource_type)) {
 				m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, path);
 			}
-		}
-		else {
+		} else {
 			if (ImGui::InputText("##v", path.beginUpdate(), path.capacity())) {
 				path.endUpdate();
 				m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, path);
@@ -540,19 +491,18 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 	}
 
 
-	void visit(const reflection::Property<const char*>& prop) override
-	{
+	void visit(const reflection::Property<const char*>& prop) override {
 		if (!m_filter.pass(prop.name)) return;
 		ComponentUID cmp = getComponent();
 		const Attributes attrs = getAttributes(prop);
-		
+
 		char tmp[1024];
 		copyString(tmp, prop.get(cmp, m_index));
 
 		if (prop.isReadonly()) ImGuiEx::PushReadOnly();
 		ImGuiEx::Label(prop.name);
 		ImGui::PushID(prop.name);
-		
+
 		auto* enum_attr = (reflection::StringEnumAttribute*)reflection::getAttribute(prop, reflection::IAttribute::STRING_ENUM);
 		if (enum_attr) {
 			if (m_entities.size() > 1) {
@@ -573,13 +523,11 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 				}
 				ImGui::EndCombo();
 			}
-		}
-		else if(attrs.is_multiline) {
+		} else if (attrs.is_multiline) {
 			if (ImGui::InputTextMultiline("##v", tmp, sizeof(tmp))) {
 				m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, tmp);
 			}
-		}
-		else {
+		} else {
 			if (ImGui::InputText("##v", tmp, sizeof(tmp))) {
 				m_editor.setProperty(m_cmp_type, m_array, m_index, prop.name, m_entities, tmp);
 			}
@@ -590,12 +538,10 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 
 	void visit(const reflection::BlobProperty& prop) override {}
 
-	void visit(const reflection::ArrayProperty& prop) override
-	{
+	void visit(const reflection::ArrayProperty& prop) override {
 		ImGui::Unindent();
 		bool is_root_open = ImGui::TreeNodeEx(prop.name, ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_DefaultOpen);
-		if (m_entities.size() > 1)
-		{
+		if (m_entities.size() > 1) {
 			ImGui::Text("Multi-object editing not supported.");
 			if (is_root_open) ImGui::TreePop();
 			ImGui::Indent();
@@ -606,38 +552,33 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 		ComponentUID cmp = getComponent();
 		int count = prop.getCount(cmp);
 		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - ImGui::CalcTextSize(ICON_FA_PLUS).x);
-		if (ImGuiEx::IconButton(ICON_FA_PLUS, "Add item"))
-		{
+		if (ImGuiEx::IconButton(ICON_FA_PLUS, "Add item")) {
 			m_editor.addArrayPropertyItem(cmp, prop.name);
 			count = prop.getCount(cmp);
 		}
-		if (!is_root_open)
-		{
+		if (!is_root_open) {
 			ImGui::PopID();
 			ImGui::Indent();
 			return;
 		}
 
-		for (int i = 0; i < count; ++i)
-		{
+		for (int i = 0; i < count; ++i) {
 			char tmp[10];
 			toCString(i, Span(tmp));
 			ImGui::PushID(i);
 			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_AllowItemOverlap;
 			bool is_open = ImGui::TreeNodeEx(tmp, flags);
 			ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - ImGui::CalcTextSize(ICON_FA_TRASH).x);
-			if (ImGuiEx::IconButton(ICON_FA_TRASH, "Remove"))
-			{
+			if (ImGuiEx::IconButton(ICON_FA_TRASH, "Remove")) {
 				m_editor.removeArrayPropertyItem(cmp, i, prop.name);
 				--i;
 				count = prop.getCount(cmp);
-				if(is_open) ImGui::TreePop();
+				if (is_open) ImGui::TreePop();
 				ImGui::PopID();
 				continue;
 			}
 
-			if (is_open)
-			{
+			if (is_open) {
 				GridUIVisitor v(m_app, i, m_entities, m_cmp_type, m_filter, m_editor);
 				v.m_array = prop.name;
 				prop.visitChildren(v);
@@ -662,8 +603,7 @@ struct GridUIVisitor final : reflection::IPropertyVisitor
 };
 
 
-static bool componentTreeNode(StudioApp& app, WorldEditor& editor, ComponentType cmp_type, const EntityRef* entities, int entities_count)
-{
+static bool componentTreeNode(StudioApp& app, WorldEditor& editor, ComponentType cmp_type, const EntityRef* entities, int entities_count) {
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_AllowItemOverlap;
 	ImGui::Separator();
 	const char* cmp_type_name = app.getComponentTypeName(cmp_type);
@@ -679,13 +619,10 @@ static bool componentTreeNode(StudioApp& app, WorldEditor& editor, ComponentType
 		cmp.type = cmp_type;
 		cmp.entity = entities[0];
 		cmp.module = editor.getWorld()->getModule(cmp_type);
-		if(ImGui::Checkbox(StaticString<256>(icon, cmp_type_name), &enabled))
-		{
+		if (ImGui::Checkbox(StaticString<256>(icon, cmp_type_name), &enabled)) {
 			editor.setProperty(cmp_type, "", -1, "Enabled", Span(entities, entities_count), enabled);
 		}
-	}
-	else
-	{
+	} else {
 		is_open = ImGui::TreeNodeEx((void*)(uintptr)cmp_type.index, flags, "%s%s", icon, cmp_type_name);
 	}
 	ImGui::PopFont();
@@ -720,14 +657,15 @@ void PropertyGrid::showComponentProperties(const Array<EntityRef>& entities, Com
 			}
 		});
 
-		if (m_property_filter.pass(component->label)) filter_properties = false;
-		else if (!filter_properties) return;
+		if (m_property_filter.pass(component->label))
+			filter_properties = false;
+		else if (!filter_properties)
+			return;
 	}
 
 	bool is_open = componentTreeNode(m_app, editor, cmp_type, &entities[0], entities.size());
 	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - ImGui::CalcTextSize(ICON_FA_ELLIPSIS_V).x);
-	if (ImGuiEx::IconButton(ICON_FA_ELLIPSIS_V, "Context menu"))
-	{
+	if (ImGuiEx::IconButton(ICON_FA_ELLIPSIS_V, "Context menu")) {
 		ImGui::OpenPopup("ctx");
 	}
 	if (ImGui::BeginPopup("ctx")) {
@@ -756,11 +694,9 @@ void PropertyGrid::showComponentProperties(const Array<EntityRef>& entities, Com
 }
 
 
-void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEditor& editor) const
-{
+void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEditor& editor) const {
 	ImGui::PushFont(m_app.getBoldFont());
-	if (!ImGui::TreeNodeEx("General", ImGuiTreeNodeFlags_DefaultOpen))
-	{
+	if (!ImGui::TreeNodeEx("General", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::PopFont();
 		return;
 	}
@@ -772,21 +708,17 @@ void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEdi
 	copyString(name, entity_name);
 	ImGui::SetNextItemWidth(-1);
 	if (ImGui::InputTextWithHint("##name", "Name", name, sizeof(name), ImGuiInputTextFlags_AutoSelectAll)) editor.setEntityName(entities[0], name);
-	if (entities.size() == 1)
-	{
+	if (entities.size() == 1) {
 		PrefabSystem& prefab_system = editor.getPrefabSystem();
 		PrefabResource* prefab = prefab_system.getPrefabResource(entities[0]);
-		if (prefab)
-		{
+		if (prefab) {
 			ImGuiEx::Label("Prefab");
 			ImGuiEx::TextUnformatted(prefab->getPath());
-			if (ImGui::Button(ICON_FA_SAVE "Save prefab"))
-			{
+			if (ImGui::Button(ICON_FA_SAVE "Save prefab")) {
 				prefab_system.savePrefab(entities[0], prefab->getPath());
 			}
 			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_UNLINK "Break prefab"))
-			{
+			if (ImGui::Button(ICON_FA_UNLINK "Break prefab")) {
 				prefab_system.breakPrefab(entities[0]);
 			}
 		}
@@ -794,8 +726,7 @@ void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEdi
 		ImGuiEx::Label("ID");
 		ImGui::Text("%d", entities[0].index);
 		EntityPtr parent = world.getParent(entities[0]);
-		if (parent.isValid())
-		{
+		if (parent.isValid()) {
 			getEntityListDisplayName(m_app, world, Span(name), parent);
 			ImGuiEx::Label("Parent");
 			ImGui::TextUnformatted(name);
@@ -804,18 +735,16 @@ void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEdi
 				Transform tr = world.getLocalTransform(entities[0]);
 				DVec3 old_pos = tr.pos;
 				ImGuiEx::Label("Local position");
-				if (ImGui::DragScalarN("##lcl_pos", ImGuiDataType_Double, &tr.pos.x, 3, 1.f))
-				{
+				if (ImGui::DragScalarN("##lcl_pos", ImGuiDataType_Double, &tr.pos.x, 3, 1.f)) {
 					WorldEditor::Coordinate coord = WorldEditor::Coordinate::NONE;
 					if (tr.pos.x != old_pos.x) coord = WorldEditor::Coordinate::X;
 					if (tr.pos.y != old_pos.y) coord = WorldEditor::Coordinate::Y;
 					if (tr.pos.z != old_pos.z) coord = WorldEditor::Coordinate::Z;
-					if (coord != WorldEditor::Coordinate::NONE)
-					{
+					if (coord != WorldEditor::Coordinate::NONE) {
 						editor.setEntitiesLocalCoordinate(&entities[0], entities.size(), (&tr.pos.x)[(int)coord], coord);
 					}
 				}
-				
+
 				ImGuiEx::Label("Local rotation");
 				const Vec3 old_euler = tr.rot.toEuler();
 				Vec3 euler = old_euler;
@@ -823,7 +752,7 @@ void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEdi
 					Array<Quat> rots(m_app.getAllocator());
 					for (EntityRef entity : entities) {
 						Vec3 tmp = world.getLocalTransform(entity).rot.toEuler();
-			
+
 						if (fabs(euler.x - old_euler.x) > 0.0001f) tmp.x = euler.x;
 						if (fabs(euler.y - old_euler.y) > 0.0001f) tmp.y = euler.y;
 						if (fabs(euler.z - old_euler.z) > 0.0001f) tmp.z = euler.z;
@@ -833,9 +762,7 @@ void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEdi
 				}
 			}
 		}
-	}
-	else
-	{
+	} else {
 		ImGuiEx::Label("ID");
 		ImGui::TextUnformatted("Multiple objects");
 		ImGuiEx::Label("Name");
@@ -847,20 +774,18 @@ void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEdi
 		DVec3 pos = world.getPosition(entities[0]);
 		DVec3 old_pos = pos;
 		ImGuiEx::Label("Position");
-		if (ImGui::DragScalarN("##pos", ImGuiDataType_Double, &pos.x, 3, 1.f, 0, 0, "%.3f"))
-		{
+		if (ImGui::DragScalarN("##pos", ImGuiDataType_Double, &pos.x, 3, 1.f, 0, 0, "%.3f")) {
 			WorldEditor::Coordinate coord = WorldEditor::Coordinate::NONE;
 			if (pos.x != old_pos.x) coord = WorldEditor::Coordinate::X;
 			if (pos.y != old_pos.y) coord = WorldEditor::Coordinate::Y;
 			if (pos.z != old_pos.z) coord = WorldEditor::Coordinate::Z;
-			if (coord != WorldEditor::Coordinate::NONE)
-			{
+			if (coord != WorldEditor::Coordinate::NONE) {
 				editor.setEntitiesCoordinate(&entities[0], entities.size(), (&pos.x)[(int)coord], coord);
 			}
 		}
 
 		ImGuiEx::Label("Rotation");
-		
+
 		Quat rot = world.getRotation(entities[0]);
 		const Vec3 old_euler = rot.toEuler();
 		Vec3 euler = old_euler;
@@ -868,7 +793,7 @@ void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEdi
 			Array<Quat> rots(m_app.getAllocator());
 			for (EntityRef entity : entities) {
 				Vec3 tmp = world.getRotation(entity).toEuler();
-			
+
 				if (fabs(euler.x - old_euler.x) > 0.0001f) tmp.x = euler.x;
 				if (fabs(euler.y - old_euler.y) > 0.0001f) tmp.y = euler.y;
 				if (fabs(euler.z - old_euler.z) > 0.0001f) tmp.z = euler.z;
@@ -876,25 +801,57 @@ void PropertyGrid::showCoreProperties(const Array<EntityRef>& entities, WorldEdi
 			}
 			editor.setEntitiesRotations(&entities[0], &rots[0], entities.size());
 		}
+	}
+	Vec3 scale = world.getScale(entities[0]);
+	Vec3 last_scale = scale;
 
-		Vec3 scale = world.getScale(entities[0]);
-		ImGuiEx::Label("Scale");
-		if (ImGui::DragFloat3("##scale", &scale.x, 0.1f, 0, FLT_MAX))
-		{
-			editor.setEntitiesScale(&entities[0], entities.size(), scale);
+	
+	ImGuiEx::Label("Scale (Locked)"); // ToDo : Fix the button position or replace the button
+
+	
+	ImGui::SameLine();
+	
+	if (ImGui::DragFloat3("##scale", &scale.x, 0.1f, 0, FLT_MAX)) {
+		if (proportional_scaling) {
+			
+			float delta_x = scale.x - last_scale.x;
+			float delta_y = scale.y - last_scale.y;
+			float delta_z = scale.z - last_scale.z;
+
+			
+			float delta = 0.0f;
+			if (delta_x != 0.0f)
+				delta = delta_x;
+			else if (delta_y != 0.0f)
+				delta = delta_y;
+			else if (delta_z != 0.0f)
+				delta = delta_z;
+
+			scale.x = last_scale.x + delta;
+			scale.y = last_scale.y + delta;
+			scale.z = last_scale.z + delta;
 		}
+
+		
+		editor.setEntitiesScale(&entities[0], entities.size(), scale);
+
+		last_scale = scale;
+	}
+	if (ImGui::Button(proportional_scaling ? "L" : "U")) {
+		proportional_scaling = !proportional_scaling; // Állapot váltása
 	}
 	ImGui::TreePop();
 }
 
 
-static void showAddComponentNode(const StudioApp::AddCmpTreeNode* node, const TextFilter& filter, EntityPtr parent, WorldEditor& editor)
-{
+static void showAddComponentNode(const StudioApp::AddCmpTreeNode* node, const TextFilter& filter, EntityPtr parent, WorldEditor& editor) {
 	if (!node) return;
 
 	if (filter.isActive()) {
-		if (!node->plugin) showAddComponentNode(node->child, filter, parent, editor);
-		else if (filter.pass(node->plugin->getLabel())) node->plugin->onGUI(false, true, parent, editor);
+		if (!node->plugin)
+			showAddComponentNode(node->child, filter, parent, editor);
+		else if (filter.pass(node->plugin->getLabel()))
+			node->plugin->onGUI(false, true, parent, editor);
 		showAddComponentNode(node->next, filter, parent, editor);
 		return;
 	}
@@ -906,8 +863,7 @@ static void showAddComponentNode(const StudioApp::AddCmpTreeNode* node, const Te
 	}
 
 	const char* last = reverseFind(node->label, '/');
-	if (ImGui::BeginMenu(last ? last + 1 : node->label))
-	{
+	if (ImGui::BeginMenu(last ? last + 1 : node->label)) {
 		showAddComponentNode(node->child, filter, parent, editor);
 		ImGui::EndMenu();
 	}
@@ -932,7 +888,7 @@ void PropertyGrid::onGUI() {
 	const Array<EntityRef>& ents = editor.getSelectedEntities();
 	if (m_focus_filter_request) ImGui::SetNextWindowFocus();
 	if (ImGui::Begin(ICON_FA_INFO_CIRCLE "Inspector##inspector", &m_is_open)) {
-		
+
 		if (m_focus_filter_request) {
 			ImGui::SetKeyboardFocusHere();
 			m_focus_filter_request = false;
