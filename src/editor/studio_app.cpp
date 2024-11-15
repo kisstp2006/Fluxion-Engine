@@ -1461,7 +1461,11 @@ struct StudioAppImpl final : StudioApp {
 		static int selected_section = 0; 
 
 		if (ImGui::Begin("Welcome to Fluxion Studio", nullptr, flags)) {
-			ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "Fluxion Studio - Welcome!");
+			alignGUICenter([&]() {
+			ImGui::Image(*(void**)m_logo, ImVec2(ImGui::GetFrameHeight(), ImGui::GetFrameHeight()));
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "Fluxion Studio - Welcome!");	
+				});
 			ImGui::Separator();
 
 			ImVec2 sidebar_size = ImVec2(200.0f, ImGui::GetContentRegionAvail().y);
