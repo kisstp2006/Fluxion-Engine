@@ -543,6 +543,7 @@ struct StudioAppImpl final : StudioApp {
 		, m_imgui_allocator(m_debug_allocator, "imgui")
 		, m_allocator(m_debug_allocator, "studio")
 		, m_export(m_allocator)
+		, m_recent_folders(m_allocator)
 	{
 		PROFILE_FUNCTION();
 		u32 cpus_count = minimum(os::getCPUsCount(), 64);
@@ -895,15 +896,6 @@ struct StudioAppImpl final : StudioApp {
 		os::Timer init_timer;
 		m_add_cmp_root.label[0] = '\0';
 
-		char saved_data_dir[MAX_PATH] = {};
-		os::InputFile cfg_file;
-		if (cfg_file.open(".lumixuser")) {
-			if (!cfg_file.read(saved_data_dir, minimum(lengthOf(saved_data_dir), (int)cfg_file.size()))) {
-				logError("Failed to read .lumixuser");
-			}
-			cfg_file.close();
-		}
-
 		char current_dir[MAX_PATH] = "";
 		os::getCurrentDirectory(Span(current_dir));
 
@@ -911,7 +903,7 @@ struct StudioAppImpl final : StudioApp {
 		checkDataDirCommandLine(data_dir, lengthOf(data_dir));
 
 		Engine::InitArgs init_data = {};
-		init_data.working_dir = data_dir[0] ? data_dir : (saved_data_dir[0] ? saved_data_dir : current_dir);
+		init_data.working_dir = data_dir[0] ? data_dir : current_dir;
 		const char* plugins[] = {
 			#define LUMIX_PLUGINS_STRINGS
 				#include "engine/plugins.inl"
@@ -927,16 +919,19 @@ struct StudioAppImpl final : StudioApp {
 		m_settings.registerOption("export_dir", &m_export.dest_dir);
 		m_settings.registerOption("gizmo_scale", &m_gizmo_config.scale, "General", "Gizmo scale");
 		m_settings.registerOption("fov", &m_fov, "General", "FOV", true);
+		static bool use_native_titlebar = false;
+		m_settings.registerOption("use_native_titlebar", &use_native_titlebar, "General", "Native titlebar (restart required)");
 		// we need some stuff (font_size) from settings at this point
 		m_settings.load();
+		m_use_native_titlebar = use_native_titlebar;
 
 		os::InitWindowArgs init_window_args;
 		init_window_args.icon = "editor/logo.ico";
 		init_window_args.user_data = this;
 		init_window_args.hit_test_callback = &StudioAppImpl::hitTestCallback;
-		init_window_args.flags = os::InitWindowArgs::NO_DECORATION;
+		init_window_args.flags = m_use_native_titlebar ? 0 : os::InitWindowArgs::NO_DECORATION;
 		init_window_args.handle_file_drops = true;
-		init_window_args.name = "Fluxion Studio";
+		init_window_args.name = "Lumix Studio";
 		init_window_args.is_hidden = true;
 
 		m_main_window = os::createWindow(init_window_args);
@@ -1447,102 +1442,76 @@ struct StudioAppImpl final : StudioApp {
 		m_editor->loadWorld(blob, path.c_str(), additive);
 	}
 
+	void changeRootFolder(const char* dir) {
+		m_engine->getFileSystem().setBasePath(dir);
+		extractBundled();
+		m_editor->loadProject();
+		m_asset_compiler->onBasePathChanged();
+		m_engine->getResourceManager().reloadAll();
+		initDefaultWorld();
+	}
+
 	void guiWelcomeScreen() {
-		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
-		ImGuiViewport* viewport = ImGui::GetMainViewport();
+		const ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowPos(viewport->WorkPos);
 		ImGui::SetNextWindowSize(viewport->WorkSize);
 		ImGui::SetNextWindowViewport(viewport->ID);
+		if (ImGui::Begin("Welcome", nullptr, flags)) {
+			#ifdef _WIN32
+				if (!m_use_native_titlebar) {
+					const ImVec2 cp = ImGui::GetCursorPos();
+					ImGui::InvisibleButton("titlebardrag", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()), ImGuiButtonFlags_AllowOverlap);
+					m_is_caption_hovered = ImGui::IsItemHovered();
+					ImGui::SetCursorPos(cp);
+					alignGUIRight([&](){
+						if (ImGuiEx::IconButton(ICON_FA_WINDOW_MINIMIZE, nullptr)) os::minimizeWindow(m_main_window);
+						ImGui::SameLine();
+						if (os::isMaximized(m_main_window)) {
+							if (ImGuiEx::IconButton(ICON_FA_WINDOW_RESTORE, nullptr)) os::restore(m_main_window);
+						}
+						else {
+							if (ImGuiEx::IconButton(ICON_FA_WINDOW_MAXIMIZE, nullptr)) os::maximizeWindow(m_main_window);
+						}
+						ImGui::SameLine();
+						if (ImGuiEx::IconButton(ICON_FA_WINDOW_CLOSE, nullptr)) exit();
+					});
+				}
+			#endif
 
-		static int selected_section = 0; // Track the selected section
-
-		if (ImGui::Begin("Welcome to Fluxion Studio", nullptr, flags)) {
-			ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "Fluxion Studio - Welcome!");
+			alignGUICenter([&](){
+				ImGui::Image(*(void**)m_logo, ImVec2(ImGui::GetFrameHeight(), ImGui::GetFrameHeight()));
+				ImGui::SameLine();
+				ImGui::Text("Welcome to Lumix Studio");
+			});
 			ImGui::Separator();
 
-			ImVec2 sidebar_size = ImVec2(200.0f, ImGui::GetContentRegionAvail().y);
-
-			// Sidebar
-			if (ImGui::BeginChild("Sidebar", sidebar_size, true)) {
-				ImGui::Text("Navigation");
-				ImGui::Separator();
-
-				// Sidebar menu items
-				if (ImGui::Selectable("General", selected_section == 0)) {
-					selected_section = 0;
-				}
-				if (ImGui::Selectable("Resources", selected_section == 1)) {
-					selected_section = 1;
-				}
-				if (ImGui::Selectable("Community", selected_section == 2)) {
-					selected_section = 2;
+			ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.5f, 0.5f));
+			if (ImGui::Selectable(ICON_FA_FOLDER_OPEN " Open / Create folder", false, 0, ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+				char dir[MAX_PATH];
+				if (os::getOpenDirectory(Span(dir), m_engine->getFileSystem().getBasePath())) {
+					m_is_welcome_screen_open = false;
+					StringView sv = dir;
+					sv.removeSuffix(1); // remove trailing slash
+					
+					if (m_recent_folders.find([&](const String& s){ return s == sv; }) < 0) {
+						m_recent_folders.pop();
+						m_recent_folders.insert(0, String(sv, m_allocator));
+					}
+					changeRootFolder(dir);
 				}
 			}
-			ImGui::EndChild();
 
-			// Main content area next to sidebar
-			ImGui::SameLine();
-			if (ImGui::BeginChild("MainContent", ImVec2(0, 0), true)) {
-				switch (selected_section) {
-					case 0: // General
-						ImGui::Text("Engine version: %s", "1.0");
-
-						ImGui::Separator();
-						ImGui::Text("Working directory: %s", m_engine->getFileSystem().getBasePath());
-						if (ImGui::Button("Change Directory...")) {
-							char dir[MAX_PATH];
-							if (os::getOpenDirectory(Span(dir), m_engine->getFileSystem().getBasePath())) {
-								os::OutputFile cfg_file;
-								if (cfg_file.open(".lumixuser")) {
-									cfg_file << dir;
-									cfg_file.close();
-								}
-								m_engine->getFileSystem().setBasePath(dir);
-								extractBundled();
-								m_editor->loadProject();
-								m_asset_compiler->onBasePathChanged();
-								m_engine->getResourceManager().reloadAll();
-							}
-						}
-						ImGui::Separator();
-
-						if (ImGui::Button("New World")) {
-							initDefaultWorld();
-							m_is_welcome_screen_open = false;
-						}
-
-						ImGui::Text("Open World:");
-						ImGui::Indent();
-						forEachWorld([&](const Path& path) {
-							if (ImGui::MenuItem(path.c_str())) {
-								loadWorld(path, false);
-								m_is_welcome_screen_open = false;
-							}
-						});
-						ImGui::Unindent();
-						break;
-
-					case 1: // Resources
-						ImGui::Text("Using NVidia PhysX");
-						if (ImGui::Button("Wiki")) os::shellExecuteOpen("https://github.com/kisstp2006/Fluxion-Engine/wiki", {}, {});
-						if (ImGui::Button("Major Releases")) os::shellExecuteOpen("https://github.com/kisstp2006/Fluxion-Engine/releases", {}, {});
-						if (ImGui::Button("Latest Commits")) os::shellExecuteOpen("https://github.com/kisstp2006/Fluxion-Engine/commits/master", {}, {});
-						if (ImGui::Button("Issues")) os::shellExecuteOpen("", {}, {});
-						break;
-
-					case 2: // Community
-						ImGui::Text("Join the Community:");
-						if (ImGui::Button("Discord")) os::shellExecuteOpen("https://discord.gg/YNgMVFTEPa", {}, {});
-						if (ImGui::Button("Forum")) os::shellExecuteOpen("https://forum.fluxionengine.com", {}, {});
-						break;
+			for (String& path : m_recent_folders) {
+				if (ImGui::Selectable(path.c_str(), false, 0, ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+					changeRootFolder(path.c_str());
+					m_is_welcome_screen_open = false;
 				}
 			}
-			ImGui::EndChild();
+			ImGui::PopStyleVar();
 		}
 		ImGui::End();
 	}
-
-
 
 	void save() {
 		if (m_editor->isGameMode()) {
@@ -1946,32 +1915,34 @@ struct StudioAppImpl final : StudioApp {
 				stats.append("FPS: ", u32(m_fps + 0.5f));
 				if (m_frames_since_focused > 10) stats.append(" - inactive window");
 
-				alignGUIRight([&](){
-					ImGuiEx::TextUnformatted(stats);
+				if (!m_use_native_titlebar) {
+					alignGUIRight([&](){
+						ImGuiEx::TextUnformatted(stats);
 
-					if (m_log_ui->getUnreadErrorCount() == 1) {
-						ImGui::SameLine();
-						ImGui::TextColored(ImVec4(1, 0, 0, 1), ICON_FA_EXCLAMATION_TRIANGLE "1 error | ");
-					}
-					else if (m_log_ui->getUnreadErrorCount() > 1)
-					{
-						StaticString<50> error_stats(ICON_FA_EXCLAMATION_TRIANGLE, m_log_ui->getUnreadErrorCount(), " errors | ");
-						ImGui::SameLine();
-						ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", (const char*)error_stats);
-					}
+						if (m_log_ui->getUnreadErrorCount() == 1) {
+							ImGui::SameLine();
+							ImGui::TextColored(ImVec4(1, 0, 0, 1), ICON_FA_EXCLAMATION_TRIANGLE "1 error | ");
+						}
+						else if (m_log_ui->getUnreadErrorCount() > 1)
+						{
+							StaticString<50> error_stats(ICON_FA_EXCLAMATION_TRIANGLE, m_log_ui->getUnreadErrorCount(), " errors | ");
+							ImGui::SameLine();
+							ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", (const char*)error_stats);
+						}
 
-					ImGui::SameLine();
-					if (ImGuiEx::IconButton(ICON_FA_WINDOW_MINIMIZE, nullptr)) os::minimizeWindow(m_main_window);
-					ImGui::SameLine();
-					if (os::isMaximized(m_main_window)) {
-						if (ImGuiEx::IconButton(ICON_FA_WINDOW_RESTORE, nullptr)) os::restore(m_main_window);
-					}
-					else {
-						if (ImGuiEx::IconButton(ICON_FA_WINDOW_MAXIMIZE, nullptr)) os::maximizeWindow(m_main_window);
-					}
-					ImGui::SameLine();
-					if (ImGuiEx::IconButton(ICON_FA_WINDOW_CLOSE, nullptr)) exit();
-				});
+						ImGui::SameLine();
+						if (ImGuiEx::IconButton(ICON_FA_WINDOW_MINIMIZE, nullptr)) os::minimizeWindow(m_main_window);
+						ImGui::SameLine();
+						if (os::isMaximized(m_main_window)) {
+							if (ImGuiEx::IconButton(ICON_FA_WINDOW_RESTORE, nullptr)) os::restore(m_main_window);
+						}
+						else {
+							if (ImGuiEx::IconButton(ICON_FA_WINDOW_MAXIMIZE, nullptr)) os::maximizeWindow(m_main_window);
+						}
+						ImGui::SameLine();
+						if (ImGuiEx::IconButton(ICON_FA_WINDOW_CLOSE, nullptr)) exit();
+					});
+				}
 			#endif
 
 			ImGui::EndMainMenuBar();
@@ -1994,6 +1965,11 @@ struct StudioAppImpl final : StudioApp {
 			const char* data = ImGui::SaveIniSettingsToMemory();
 			m_settings.m_imgui_state = data;
 			io.WantSaveIniSettings = false;
+		}
+
+		for (u32 i = 0; i < (u32)m_recent_folders.size(); ++i) {
+			const String& path = m_recent_folders[i];
+			m_settings.setString(StaticString<64>("recent_root_folder_", i), path.c_str(), Settings::USER);
 		}
 
 		m_settings.setBool("is_maximized", os::isMaximized(m_main_window), Settings::WORKSPACE);
@@ -2216,6 +2192,16 @@ struct StudioAppImpl final : StudioApp {
 		m_settings.load();
 		if (CommandLineParser::isOn("-no_crash_report")) enableCrashReporting(false);
 		else enableCrashReporting(m_crash_reporting);
+
+		m_recent_folders.clear();
+		for (u32 i = 0; i < 5; ++i) {
+			const char* path = m_settings.getString(StaticString<64>("recent_root_folder_", i), "");
+			if (!path || !path[0]) continue;
+			if (os::dirExists(path)) m_recent_folders.emplace(path, m_allocator);
+		}
+		if (m_recent_folders.empty()) {
+			m_recent_folders.emplace(m_engine->getFileSystem().getBasePath(), m_allocator);
+		}
 
 		for (auto* i : m_gui_plugins) {
 			i->onSettingsLoaded();
@@ -3040,11 +3026,13 @@ struct StudioAppImpl final : StudioApp {
 	UniquePtr<GUIPlugin> m_profiler_ui;
 	Local<LogUI> m_log_ui;
 	Settings m_settings;
+	Array<String> m_recent_folders;
 	
 	FileSelector m_file_selector;
 	DirSelector m_dir_selector;
 	
 	float m_fov = degreesToRadians(60);
+	bool m_use_native_titlebar = false;
 	RenderInterface* m_render_interface = nullptr;
 	Array<os::Event> m_events;
 	TextFilter m_open_filter;

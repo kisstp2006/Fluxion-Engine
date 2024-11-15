@@ -703,7 +703,7 @@ WindowHandle createWindow(const InitWindowArgs& args) {
 
 	WCharStr<MAX_PATH> wname(args.name);
 	DWORD style =  args.flags & InitWindowArgs::NO_DECORATION 
-		? (args.hit_test_callback ? WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX : WS_POPUP)
+		? (args.hit_test_callback ? WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX : 0)
 		: WS_OVERLAPPEDWINDOW;
 	DWORD ext_style = args.flags & InitWindowArgs::NO_TASKBAR_ICON ? WS_EX_TOOLWINDOW : WS_EX_APPWINDOW;
 	WindowData* window_data = LUMIX_NEW(getGlobalAllocator(), WindowData);
@@ -953,7 +953,7 @@ void restore(WindowHandle win, WindowState state) {
 WindowState setFullscreen(WindowHandle win) {
 	WindowState res;
 	res.rect = getWindowScreenRect(win);
-	res.style = SetWindowLongPtr((HWND)win, GWL_STYLE, WS_VISIBLE | WS_POPUP);
+	res.style = SetWindowLongPtr((HWND)win, GWL_STYLE, WS_VISIBLE);
 	DEBUG_CHECK(res.style);
 	int w = GetSystemMetrics(SM_CXSCREEN);
 	int h = GetSystemMetrics(SM_CYSCREEN);
